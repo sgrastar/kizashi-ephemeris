@@ -30,3 +30,5 @@ npm test           # calculation tests, including comparisons with native Swiss 
 npm run typecheck
 npm run deploy     # builds the source archive into public/source/ first
 ```
+
+The same steps work in an unpacked source archive: without `.git`, `scripts/build-source.mjs` rebuilds the archive from `SOURCE-MANIFEST.json`.
