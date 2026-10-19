@@ -220,6 +220,20 @@ function solarCusps(solarSign: number): number[] {
   return Array.from({ length: 12 }, (_, index) => normalizeDegrees((solarSign + index) * 30));
 }
 
+/**
+ * A chart from a chosen sign alone (no birth data): that sign is the first house, as in Solar Sign
+ * with an unknown birth time, and there are no natal planets.
+ */
+export function signNatalChart(sign: number): UnknownSolarNatalChart {
+  if (!Number.isInteger(sign) || sign < 0 || sign > 11) throw new FortuneInputError('星座は0〜11の番号で指定してください。');
+  return {
+    timeKnown: false, instant: null, julianDayUt: null, planets: null,
+    ascendant: null, midheaven: null, cusps: solarCusps(sign),
+    houseSystem: 'solar-sign', solarSign: sign, solarSignCandidates: [sign],
+    zodiac: 'tropical', ephemeris: 'moshier',
+  };
+}
+
 function checkChosenSunSign(profile: BirthProfile, candidates: readonly number[]): number {
   if (profile.sunSign !== undefined) {
     if (!candidates.includes(profile.sunSign)) {

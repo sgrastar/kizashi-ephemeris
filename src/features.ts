@@ -9,7 +9,7 @@
 import { SwissEph } from '@typescriptify/sweph/dist/SwissEph/index.js';
 import { SE_JUPITER, SE_SATURN, SEFLG_MOSEPH } from '@typescriptify/sweph/dist/constants.js';
 import { angularSeparation, normalizeDegrees, planetPosition, houseOfLongitude, utcToJulianDay,
-  natalChart, PLANET_IDS } from './ephemeris.js';
+  natalChart, signNatalChart, PLANET_IDS } from './ephemeris.js';
 import type { BirthProfile, HouseSystem, NatalChart, OuterPlanetName, Position } from './ephemeris.js';
 import type { PlanetName, AspectName } from './types.js';
 import { dayBounds, localDateTimeToUtc, timezoneFormatter } from './calendar.js';
@@ -203,7 +203,8 @@ function sortContacts(contacts: Contact[]): Contact[] {
 }
 
 export interface FeatureRequest {
-  profile: BirthProfile;
+  /** Absent only for a chosen sign without birth data (prepareSign). */
+  profile?: BirthProfile;
   houseSystem?: HouseSystem;
   timezone: string;
 }
@@ -213,6 +214,8 @@ export interface PreparedNatal {
   natal: NatalChart;
   /** Unknown time only: [start-of-day, end-of-day] natal longitudes of Sun, Mercury, Venus, Mars. */
   ranges: Partial<Record<Exclude<PlanetName, 'moon'>, [number, number]>> | null;
+  /** A chosen sign without birth data: no natal planets, so no natal contacts or perfections. */
+  signOnly?: true;
 }
 
 /**
@@ -242,7 +245,13 @@ export function longitudeRangeOverDay(engine: SwissEph, startJd: number, endJd: 
   return [normalizeDegrees(start.longitude + Math.min(...offsets) - margin), normalizeDegrees(start.longitude + Math.max(...offsets) + margin)];
 }
 
+/** A chosen sign as the first house, without birth data (the Kizashi Sora watch face). */
+export function prepareSign(sign: number): PreparedNatal {
+  return { natal: signNatalChart(sign), ranges: null, signOnly: true };
+}
+
 export function prepareNatal(engine: SwissEph, request: FeatureRequest): PreparedNatal {
+  if (!request.profile) throw new Error('prepareNatal needs a birth profile; a chosen sign uses prepareSign.');
   const natal = natalChart(engine, request.profile, request.houseSystem ?? 'whole-sign');
   if (natal.timeKnown) return { natal, ranges: null };
   const bounds = dayBounds(request.profile.date, request.profile.timezone);

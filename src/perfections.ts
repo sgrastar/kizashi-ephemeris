@@ -36,6 +36,8 @@ const ALL_ASPECTS = MAJOR_ASPECTS.map(a => a.name);
 const ANGLE_ASPECTS: readonly AspectName[] = ['conjunction', 'opposition'];
 
 function natalPoints(engine: SwissEph, prepared: PreparedNatal, request: FeatureRequest): NatalPoint[] {
+  // A chosen sign without birth data has no natal points to perfect.
+  if (prepared.signOnly) return [];
   const chart = prepared.natal;
   if (chart.timeKnown) {
     const jd = chart.julianDayUt!;
@@ -49,7 +51,7 @@ function natalPoints(engine: SwissEph, prepared: PreparedNatal, request: Feature
     return points;
   }
   // Unknown time: same certainty rule as the noon contacts — never the natal Moon or angles.
-  const bounds = dayBounds(request.profile.date, request.profile.timezone);
+  const bounds = dayBounds(request.profile!.date, request.profile!.timezone);
   const startJd = utcToJulianDay(new Date(bounds.s * 1000)), endJd = utcToJulianDay(new Date(bounds.e * 1000));
   const points: NatalPoint[] = (['sun', 'mercury', 'venus', 'mars'] as const)
     .map(p => ({ target: `natal.${p}` as NatalTarget, longitude: prepared.ranges![p]!, aspects: ALL_ASPECTS }));

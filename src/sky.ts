@@ -3,10 +3,10 @@
  * as plain data. Each function performs its calculations in the same order the combined Worker did, so an
  * input error is the same one it reported.
  */
-import { createEngine, natalChart, planetPosition, outerPlanetLongitudes, utcToJulianDay, houseOfLongitude, normalizeDegrees } from './ephemeris.js';
+import { createEngine, natalChart, signNatalChart, planetPosition, outerPlanetLongitudes, utcToJulianDay, houseOfLongitude, normalizeDegrees } from './ephemeris.js';
 import type { BirthProfile, HouseSystem, NatalChart, OuterPlanetLongitudes, Position } from './ephemeris.js';
 import { FortuneInputError, addDays, dayBounds, localDateTimeToUtc, timezoneFormatter } from './calendar.js';
-import { prepareNatal, dayFeatures, voidOfCourse, elongationAt } from './features.js';
+import { prepareNatal, prepareSign, dayFeatures, voidOfCourse, elongationAt } from './features.js';
 import type { DayFeatures, PhaseEvent, PreparedNatal } from './features.js';
 import { orthodoxDay, julianDayToUtc } from './perfections.js';
 import type { OrthodoxDay } from './perfections.js';
@@ -41,7 +41,13 @@ function withEngine<T>(run: (engine: Engine) => T): T {
 // ---- Daily readings (the watch, the site's demo, QA evidence) ----
 
 export interface FortuneSkyRequest {
-  profile: BirthProfile;
+  /** The birth data; absent when `sign` is given. */
+  profile?: BirthProfile;
+  /**
+   * A chosen sign (0 = Aries … 11 = Pisces) instead of birth data, for the Kizashi Sora watch face:
+   * Solar Sign houses from that sign, no natal planets, so no natal contacts or perfections.
+   */
+  sign?: number;
   houseSystem: HouseSystem;
   /** The display zone the days are civil days in. */
   timezone: string;
@@ -73,8 +79,11 @@ export interface FortuneSky {
 
 export function fortuneSky(request: FortuneSkyRequest): SkyResult<FortuneSky> {
   return attempt(() => withEngine(engine => {
+    const signOnly = request.sign !== undefined;
+    if (signOnly === (request.profile !== undefined)) throw new FortuneInputError('出生データか星座のどちらか一方を指定してください。');
+    if (signOnly && request.houseSystem !== 'solar-sign') throw new FortuneInputError('星座だけの読みはソーラーサインで指定してください。');
     const formatter = timezoneFormatter(request.timezone);
-    const natal = natalChart(engine, request.profile, request.houseSystem);
+    const natal = signOnly ? signNatalChart(request.sign!) : natalChart(engine, request.profile!, request.houseSystem);
     const days: FortuneSkyDay[] = request.dates.map(date => {
       // The full day is represented by LOCAL noon, including sign-change days.
       const representative = localDateTimeToUtc(date, '12:00', request.timezone, undefined, formatter);
@@ -90,7 +99,7 @@ export function fortuneSky(request: FortuneSkyRequest): SkyResult<FortuneSky> {
     if (request.outer) sky.outerNatal = natal.timeKnown ? outerPlanetLongitudes(engine, natal.julianDayUt!) : null;
     if (request.features) {
       const featureRequest = { profile: request.profile, houseSystem: request.houseSystem, timezone: request.timezone };
-      const prepared = prepareNatal(engine, featureRequest);
+      const prepared = signOnly ? prepareSign(request.sign!) : prepareNatal(engine, featureRequest);
       sky.prepared = prepared;
       sky.features = request.dates.map(date => {
         const features = dayFeatures(engine, prepared, featureRequest, date);
