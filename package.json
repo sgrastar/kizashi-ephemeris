@@ -17,10 +17,8 @@
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "types": "node scripts/worker-cli.mjs types",
-    "build:source": "node scripts/build-source.mjs",
-    "predeploy": "npm run build:source",
     "deploy": "node scripts/worker-cli.mjs deploy",
-    "check:worker": "npm run build:source && node scripts/worker-cli.mjs deploy --dry-run --outdir dist/worker"
+    "check:worker": "node scripts/worker-cli.mjs deploy --dry-run --outdir dist/worker"
   },
   "dependencies": {
     "@typescriptify/sweph": "1.0.4"

@@ -6,7 +6,7 @@ It computes, and only computes: planetary positions, birth charts in five house 
 
 ## License
 
-AGPL-3.0, like the Swiss Ephemeris it uses (`@typescriptify/sweph`, a TypeScript port of Swiss Ephemeris, in Moshier mode, used unchanged). See `LICENSE` and `THIRD_PARTY_NOTICES.md`. The source archive of the deployed version is served at `/source/kizashi-ephemeris-source.tar.gz` on the sites that use it.
+AGPL-3.0, like the Swiss Ephemeris it uses (`@typescriptify/sweph`, a TypeScript port of Swiss Ephemeris, in Moshier mode, used unchanged). See `LICENSE` and `THIRD_PARTY_NOTICES.md`. The source of the deployed version is this repository: <https://github.com/sgrastar/kizashi-ephemeris>.
 
 ## Interface
 
@@ -20,7 +20,7 @@ AGPL-3.0, like the Swiss Ephemeris it uses (`@typescriptify/sweph`, a TypeScript
 | `weeklySky({sign, weekStart?}, nowMs)` | A week's sky for one Sun sign (Solar Sign houses) |
 | `schemaVersion()` | `SKY_SCHEMA_VERSION` |
 
-The Worker's own `fetch` answers `/v1/health` and `/source/*`.
+The Worker's own `fetch` answers `/v1/health`, and redirects `/source/*` (where a source archive used to be) to this repository.
 
 ## Develop
 
@@ -28,7 +28,5 @@ The Worker's own `fetch` answers `/v1/health` and `/source/*`.
 npm ci
 npm test           # calculation tests, including comparisons with native Swiss Ephemeris (WASM)
 npm run typecheck
-npm run deploy     # builds the source archive into public/source/ first
+npm run deploy
 ```
-
-The same steps work in an unpacked source archive: without `.git`, `scripts/build-source.mjs` rebuilds the archive from `SOURCE-MANIFEST.json`.

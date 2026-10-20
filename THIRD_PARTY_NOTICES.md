@@ -1,6 +1,6 @@
 # Third-party notices
 
-kizashi-ephemeris is provided under the GNU Affero General Public License, version 3. The complete license text is in `LICENSE`. The source archive contains the Worker's code, tests, dependency lockfile, and build instructions. Its npm dependencies are obtained at the exact versions and integrity hashes recorded in `package-lock.json`.
+kizashi-ephemeris is provided under the GNU Affero General Public License, version 3. The complete license text is in `LICENSE`. The repository (<https://github.com/sgrastar/kizashi-ephemeris>) contains the Worker's code, tests, dependency lockfile, and build instructions. Its npm dependencies are obtained at the exact versions and integrity hashes recorded in `package-lock.json`.
 
 ## Runtime astronomy library
 
