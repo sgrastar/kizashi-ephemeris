@@ -3,7 +3,7 @@
  * as plain data. Each function performs its calculations in the same order the combined Worker did, so an
  * input error is the same one it reported.
  */
-import { createEngine, natalChart, signNatalChart, planetPosition, outerPlanetLongitudes, utcToJulianDay, houseOfLongitude, normalizeDegrees } from './ephemeris.js';
+import { createEngine, natalChart, signNatalChart, planetPosition, outerPlanetLongitudes, utcToJulianDay, houseOfLongitude, normalizeDegrees, lunarNode } from './ephemeris.js';
 import type { BirthProfile, HouseSystem, NatalChart, OuterPlanetLongitudes, Position } from './ephemeris.js';
 import { FortuneInputError, addDays, dayBounds, localDateTimeToUtc, timezoneFormatter } from './calendar.js';
 import { prepareNatal, prepareSign, dayFeatures, voidOfCourse, elongationAt } from './features.js';
@@ -112,13 +112,38 @@ export function fortuneSky(request: FortuneSkyRequest): SkyResult<FortuneSky> {
 
 // ---- One day in detail (the daily e-mail) ----
 
-export interface DaySkyRequest { profile: BirthProfile; houseSystem: HouseSystem; timezone: string; date: string; timeline: boolean }
+export interface DaySkyRequest {
+  profile: BirthProfile; houseSystem: HouseSystem; timezone: string; date: string; timeline: boolean;
+  /** Also the chart extras (ChartSky) for a full birth-chart display. */
+  chart?: boolean;
+}
+/** The ten bodies in a fixed order: Sun, Moon, Mercury, Venus, Mars, Jupiter, Saturn, Uranus, Neptune, Pluto. */
+const CHART_BODIES = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'] as const;
+/**
+ * What a full birth-chart display adds: each body's daily motion in longitude (negative while retrograde) and the
+ * true lunar node, at birth (null without a birth time) and at the day's representative instant, with the day's
+ * longitudes too.
+ */
+export interface ChartSky {
+  natal: { speeds: number[]; node: number } | null;
+  today: { longitudes: number[]; speeds: number[]; node: number };
+}
 export interface DayTimeline {
   voids: { from: string; to: string; fromPreviousDay: boolean; untilNextDay: boolean }[];
   ingress: { at: string; sign: number } | null;
   phase: { at: string; phase: PhaseEvent } | null;
 }
-export interface DaySky { features: DayFeatures; perfections: OrthodoxDay; timeline?: DayTimeline }
+export interface DaySky { features: DayFeatures; perfections: OrthodoxDay; timeline?: DayTimeline; chart?: ChartSky }
+
+function chartSky(engine: Engine, natal: NatalChart, todayJd: number): ChartSky {
+  const at = (jd: number) => CHART_BODIES.map(body => planetPosition(engine, jd, body));
+  const natalJd = natal.timeKnown ? natal.julianDayUt : null;
+  const today = at(todayJd);
+  return {
+    natal: natalJd === null ? null : { speeds: at(natalJd).map(p => p.speed), node: lunarNode(engine, natalJd).longitude },
+    today: { longitudes: today.map(p => p.longitude), speeds: today.map(p => p.speed), node: lunarNode(engine, todayJd).longitude },
+  };
+}
 
 /** Void-of-course stretches inside [startJd, endJd): sampled every 30 minutes, edges found to a minute. */
 function voidStretches(engine: Engine, startJd: number, endJd: number) {
@@ -165,7 +190,8 @@ export function daySky(request: DaySkyRequest): SkyResult<DaySky> {
     const prepared = prepareNatal(engine, featureRequest);
     const features = dayFeatures(engine, prepared, featureRequest, request.date);
     const perfections = orthodoxDay(engine, prepared, featureRequest, features);
-    if (!request.timeline) return { features, perfections };
+    const chart = request.chart ? { chart: chartSky(engine, prepared.natal, features.julianDayUt) } : {};
+    if (!request.timeline) return { features, perfections, ...chart };
     const bounds = dayBounds(request.date, request.timezone);
     const startJd = utcToJulianDay(new Date(bounds.s * 1000)), endJd = utcToJulianDay(new Date(bounds.e * 1000));
     const voids = voidStretches(engine, startJd, endJd).map(v => ({ from: julianDayToUtc(v.from), to: julianDayToUtc(v.to),
@@ -175,7 +201,7 @@ export function daySky(request: DaySkyRequest): SkyResult<DaySky> {
     const ingress = ingressJd < endJd
       ? { at: julianDayToUtc(ingressJd), sign: (Math.floor(planetPosition(engine, startJd, 'moon').longitude / 30) + 1) % 12 } : null;
     const found = phaseInstant(engine, startJd, endJd);
-    return { features, perfections, timeline: { voids, ingress, phase: found ? { at: julianDayToUtc(found.jd), phase: found.phase } : null } };
+    return { features, perfections, timeline: { voids, ingress, phase: found ? { at: julianDayToUtc(found.jd), phase: found.phase } : null }, ...chart };
   }));
 }
 

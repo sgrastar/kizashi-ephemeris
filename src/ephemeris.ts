@@ -1,7 +1,7 @@
 import { SwissEph } from '@typescriptify/sweph/dist/SwissEph/index.js';
 import { sweHousesEx2 } from '@typescriptify/sweph/dist/swehouse.js';
 import { SE_SUN, SE_MOON, SE_MERCURY, SE_VENUS, SE_MARS, SE_JUPITER, SE_SATURN, SE_URANUS,
-  SE_NEPTUNE, SE_PLUTO, SEFLG_MOSEPH } from '@typescriptify/sweph/dist/constants.js';
+  SE_NEPTUNE, SE_PLUTO, SE_TRUE_NODE, SEFLG_MOSEPH } from '@typescriptify/sweph/dist/constants.js';
 import type { PlanetName } from './types.js';
 import { FortuneInputError, localDateTimeToUtc, dayBounds } from './calendar.js';
 
@@ -181,6 +181,15 @@ export function planetPosition(engine: SwissEph, julianDayUt: number, planet: Pl
   }
   const longitude = normalizeDegrees(position.longitude);
   return { longitude, sign: Math.floor(longitude / 30), speed: position.longitudeSpeed };
+}
+
+/** The Moon's true north node and its daily motion; the south node is the opposite point. */
+export function lunarNode(engine: SwissEph, julianDayUt: number): { longitude: number; speed: number } {
+  const position = engine.calc(julianDayUt, SE_TRUE_NODE);
+  if (!Number.isFinite(position.longitude) || !Number.isFinite(position.longitudeSpeed)) {
+    throw new Error('Configured Moshier ephemeris did not produce the lunar node.');
+  }
+  return { longitude: normalizeDegrees(position.longitude), speed: position.longitudeSpeed };
 }
 
 /** Fixed wire order: Jupiter, Saturn, Uranus, Neptune, Pluto. */
