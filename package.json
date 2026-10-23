@@ -11,7 +11,8 @@
     "./calendar": "./src/calendar.ts",
     "./features": "./src/features.ts",
     "./perfections": "./src/perfections.ts",
-    "./weekly-sky": "./src/weekly-sky.ts"
+    "./weekly-sky": "./src/weekly-sky.ts",
+    "./birth-places": "./src/birth-places.ts"
   },
   "scripts": {
     "test": "tsx --test test/*.test.ts",

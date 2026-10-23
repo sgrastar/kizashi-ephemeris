@@ -11,6 +11,8 @@ import type { DayFeatures, PhaseEvent, PreparedNatal } from './features.js';
 import { orthodoxDay, julianDayToUtc } from './perfections.js';
 import type { OrthodoxDay } from './perfections.js';
 import { generateWeeklySky } from './weekly-sky.js';
+import { searchBestBirths } from './best-births.js';
+import type { BestBirth, BestBirths, BestBirthsRequest } from './best-births.js';
 import type { WeeklySky } from './weekly-sky.js';
 
 /** The shape of the RPC results; raised when a field changes meaning, not when a calculation is refined. */
@@ -279,4 +281,13 @@ export interface WeeklySkyInput { sign: number | string; weekStart?: string }
 
 export function weeklySky(input: WeeklySkyInput, nowMs: number): SkyResult<WeeklySky> {
   return attempt(() => generateWeeklySky(input, new Date(nowMs)));
+}
+
+// ---- The births the day's Moon meets best ----
+
+export type { BestBirth, BestBirths, BestBirthsRequest };
+
+/** Seconds of calculation, not milliseconds: a scheduled job's work, not a request's. */
+export function bestBirths(request: BestBirthsRequest): SkyResult<BestBirths> {
+  return attempt(() => withEngine(engine => searchBestBirths(engine, request)));
 }
