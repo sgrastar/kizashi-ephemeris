@@ -8,5 +8,7 @@
   "compatibility_flags": ["nodejs_compat"],
   "send_metrics": false,
   "workers_dev": false,
+  // The best-births search (kizashi-lucky, once a day) takes seconds of CPU; requests from kizashi take milliseconds.
+  "limits": { "cpu_ms": 300000 },
   "observability": { "enabled": true, "head_sampling_rate": 1 }
 }
