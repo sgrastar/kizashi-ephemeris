@@ -12,6 +12,7 @@ import { orthodoxDay, julianDayToUtc } from './perfections.js';
 import type { OrthodoxDay } from './perfections.js';
 import { generateWeeklySky } from './weekly-sky.js';
 import { searchBestBirths } from './best-births.js';
+import { BIRTH_PLACES } from './birth-places.js';
 import type { BestBirth, BestBirths, BestBirthsRequest } from './best-births.js';
 import type { WeeklySky } from './weekly-sky.js';
 
@@ -290,4 +291,9 @@ export type { BestBirth, BestBirths, BestBirthsRequest };
 /** Seconds of calculation, not milliseconds: a scheduled job's work, not a request's. */
 export function bestBirths(request: BestBirthsRequest): SkyResult<BestBirths> {
   return attempt(() => withEngine(engine => searchBestBirths(engine, request)));
+}
+
+/** The cities the search is meant to read (src/birth-places.ts), with their names, for a caller that has no copy. */
+export function birthPlaces() {
+  return BIRTH_PLACES;
 }
