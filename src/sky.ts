@@ -15,18 +15,22 @@ import { searchBestBirths } from './best-births.js';
 import { BIRTH_PLACES } from './birth-places.js';
 import type { BestBirth, BestBirths, BestBirthsRequest } from './best-births.js';
 import type { WeeklySky } from './weekly-sky.js';
+import { computeLifeSky } from './life-sky.js';
+import type { LifeSkyRequest, LifeSky } from './life-sky.js';
 
 /** The shape of the RPC results; raised when a field changes meaning, not when a calculation is refined. */
 export const SKY_SCHEMA_VERSION = 1;
 
 /** An input the calculation cannot accept (an impossible date, a house system undefined at the latitude …). */
-export type SkyResult<T> = { ok: true; value: T } | { ok: false; error: { kind: 'input'; message: string } };
+export type SkyResult<T> = { ok: true; value: T } | { ok: false; error: { kind: 'input'; message: string; candidates?: number[] } };
 
 function attempt<T>(run: () => T): SkyResult<T> {
   try {
     return { ok: true, value: run() };
   } catch (error) {
-    if (error instanceof FortuneInputError) return { ok: false, error: { kind: 'input', message: error.message } };
+    if (error instanceof FortuneInputError) {
+      return { ok: false, error: { kind: 'input', message: error.message, ...(error.candidates ? { candidates: error.candidates } : {}) } };
+    }
     throw error;
   }
 }
@@ -296,4 +300,13 @@ export function bestBirths(request: BestBirthsRequest): SkyResult<BestBirths> {
 /** The cities the search is meant to read (src/birth-places.ts), with their names, for a caller that has no copy. */
 export function birthPlaces() {
   return BIRTH_PLACES;
+}
+
+// ---- The personal page: a life's chart and timing ----
+
+export type { LifeSkyRequest, LifeSky };
+
+/** The natal chart, time lords and long-term astronomical events in one request. */
+export function lifeSky(request: LifeSkyRequest): SkyResult<LifeSky> {
+  return attempt(() => withEngine(engine => computeLifeSky(engine, request)));
 }

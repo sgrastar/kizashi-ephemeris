@@ -251,7 +251,7 @@ function checkChosenSunSign(profile: BirthProfile, candidates: readonly number[]
     return profile.sunSign;
   }
   if (candidates.length !== 1) {
-    throw new FortuneInputError('太陽星座が切り替わる日です。出生時刻が不明な場合は太陽星座を選択してください。');
+    throw new FortuneInputError('太陽星座が切り替わる日です。出生時刻が不明な場合は太陽星座を選択してください。', [...candidates]);
   }
   return candidates[0];
 }
@@ -334,4 +334,21 @@ export function natalChart(engine: SwissEph, profile: BirthProfile, houseSystem:
 
 export function createEngine(): SwissEph {
   return new SwissEph({ ephemeris: 'moshier', timeMode: 'ut' });
+}
+
+/** Apparent geocentric ecliptic coordinates, including latitude for horizon calculations. */
+export function eclipticPosition(engine: SwissEph, jd: number, body: PlanetName | OuterPlanetName): Position & { latitude: number } {
+  const position = engine.calc(jd, DISPLAY_PLANET_IDS[body]);
+  if (!(position.flags & SEFLG_MOSEPH) || ![position.longitude, position.latitude, position.longitudeSpeed].every(Number.isFinite)) {
+    throw new Error('Configured Moshier ephemeris did not produce valid ecliptic coordinates.');
+  }
+  const longitude = normalizeDegrees(position.longitude);
+  return { longitude, latitude: position.latitude, speed: position.longitudeSpeed, sign: Math.floor(longitude / 30) };
+}
+
+/** House cusps at an already calculated instant, with the natal chart's strict polar checks. */
+export function housesAt(engine: SwissEph, jd: number, geo: { latitude: number; longitude: number }, system: Exclude<HouseSystem, 'solar-sign'>) {
+  const houses = system === 'whole-sign' ? engine.houses(jd, geo, 'W') :
+    quadrantHouses(engine, jd, { ...geo, date: '2000-01-01', time: '12:00', timezone: 'UTC' }, system);
+  return { ascendant: normalizeDegrees(houses.ascendant), midheaven: normalizeDegrees(houses.mc), cusps: houses.cusps.slice(1, 13).map(normalizeDegrees) };
 }

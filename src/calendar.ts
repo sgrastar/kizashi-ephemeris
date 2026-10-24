@@ -1,8 +1,11 @@
 /** Civil-date handling. Birth and display zones are independent IANA zones. */
 export class FortuneInputError extends Error {
-  constructor(message: string) {
+  /** The Sun signs (0 = Aries) a caller can choose from, when the input fails only for lack of that choice. */
+  readonly candidates?: number[];
+  constructor(message: string, candidates?: number[]) {
     super(message);
     this.name = 'FortuneInputError';
+    if (candidates) this.candidates = candidates;
   }
 }
 
