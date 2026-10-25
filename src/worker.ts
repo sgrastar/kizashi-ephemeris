@@ -6,8 +6,8 @@
  * Its source is this repository: https://github.com/sgrastar/kizashi-ephemeris
  */
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { fortuneSky, daySky, quizSky, weeklySky, bestBirths, birthPlaces, lifeSky, SKY_SCHEMA_VERSION } from './sky.js';
-import type { FortuneSkyRequest, DaySkyRequest, QuizSkyRequest, WeeklySkyInput, BestBirthsRequest, LifeSkyRequest } from './sky.js';
+import { fortuneSky, daySky, quizSky, weeklySky, bestBirths, birthPlaces, lifeSky, jyotishSky, SKY_SCHEMA_VERSION } from './sky.js';
+import type { FortuneSkyRequest, DaySkyRequest, QuizSkyRequest, WeeklySkyInput, BestBirthsRequest, LifeSkyRequest, JyotishSkyRequest } from './sky.js';
 
 const SOURCE_URL = 'https://github.com/sgrastar/kizashi-ephemeris';
 
@@ -32,6 +32,7 @@ export class Ephemeris extends WorkerEntrypoint {
   bestBirths(request: BestBirthsRequest) { return bestBirths(request); }
   birthPlaces() { return birthPlaces(); }
   lifeSky(request: LifeSkyRequest) { return lifeSky(request); }
+  jyotishSky(request: JyotishSkyRequest) { return jyotishSky(request); }
 }
 
 export default {

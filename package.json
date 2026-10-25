@@ -14,6 +14,7 @@
     "./weekly-sky": "./src/weekly-sky.ts",
     "./birth-places": "./src/birth-places.ts",
     "./life-sky": "./src/life-sky.ts",
+    "./jyotish-sky": "./src/jyotish-sky.ts",
     "./time-lords": "./src/time-lords.ts"
   },
   "scripts": {

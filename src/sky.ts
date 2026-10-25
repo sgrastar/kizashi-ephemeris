@@ -16,6 +16,8 @@ import { BIRTH_PLACES } from './birth-places.js';
 import type { BestBirth, BestBirths, BestBirthsRequest } from './best-births.js';
 import type { WeeklySky } from './weekly-sky.js';
 import { computeLifeSky } from './life-sky.js';
+import { computeJyotishSky } from './jyotish-sky.js';
+import type { JyotishSkyRequest, JyotishSky } from './jyotish-types.js';
 import type { LifeSkyRequest, LifeSky } from './life-sky.js';
 
 /** The shape of the RPC results; raised when a field changes meaning, not when a calculation is refined. */
@@ -309,4 +311,10 @@ export type { LifeSkyRequest, LifeSky };
 /** The natal chart, time lords and long-term astronomical events in one request. */
 export function lifeSky(request: LifeSkyRequest): SkyResult<LifeSky> {
   return attempt(() => withEngine(engine => computeLifeSky(engine, request)));
+}
+
+// ---- The personal page: Lahiri sidereal timing (separate from lifeSky) ----
+export type * from './jyotish-types.js';
+export function jyotishSky(request: JyotishSkyRequest): SkyResult<JyotishSky> {
+  return attempt(() => withEngine(engine => computeJyotishSky(engine, request)));
 }
