@@ -136,6 +136,13 @@ const better = (a: BirthScore, b: BirthScore) =>
   a.house !== b.house ? a.house > b.house : a.other !== b.other ? a.other < b.other : a.trines !== b.trines ? a.trines > b.trines : a.gapMinutes < b.gapMinutes;
 const compare = (a: { score: BirthScore }, b: { score: BirthScore }) => better(a.score, b.score) ? -1 : better(b.score, a.score) ? 1 : 0;
 
+/** FNV-1a, 32 bits: a fixed, even spread for breaking ties. */
+function hash(text: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 0x01000193) >>> 0;
+  return h;
+}
+
 const isInteger = (value: unknown, low: number, high: number) => Number.isInteger(value) && (value as number) >= low && (value as number) <= high;
 
 function validate(request: BestBirthsRequest) {
@@ -146,13 +153,13 @@ function validate(request: BestBirthsRequest) {
   if (!isInteger(minAge, 0, 120) || !isInteger(maxAge, minAge, 120) || year - maxAge - 1 < 1900) {
     throw new FortuneInputError('年齢の範囲は 0 から 120 の整数で、下限が上限以下、生まれ年が 1900 年以降になるように指定してください。');
   }
-  if (!isInteger(perRegion, 1, 20)) throw new FortuneInputError('地域ごとの人数は 1 から 20 で指定してください。');
+  if (!isInteger(perRegion, 1, 50)) throw new FortuneInputError('地域ごとの人数は 1 から 50 で指定してください。');
   if (request.crowns !== undefined && !isInteger(request.crowns, 0, 100)) throw new FortuneInputError('王冠の数は 0 から 100 で指定してください。');
   if (request.spreadDays !== undefined && !isInteger(request.spreadDays, 0, 366)) throw new FortuneInputError('誕生日の間隔は 0 から 366 日で指定してください。');
   if (request.stepMinutes !== undefined && !isInteger(request.stepMinutes, 1, 60)) throw new FortuneInputError('出生時刻の刻みは 1 から 60 分で指定してください。');
   if (request.depth !== undefined && !isInteger(request.depth, 1, 2000)) throw new FortuneInputError('詳しく読む日数は 1 から 2000 で指定してください。');
   if (houseRank.length !== 12 || !houseRank.every(Number.isFinite)) throw new FortuneInputError('ハウスの順位は 12 個の数で指定してください。');
-  if (places.length === 0 || places.length > 1000) throw new FortuneInputError('出生地は 1 から 1000 か所で指定してください。');
+  if (places.length === 0 || places.length > 2000) throw new FortuneInputError('出生地は 1 から 2000 か所で指定してください。');
   for (const place of places) {
     if (!(Math.abs(place.latitude) <= 66) || !(Math.abs(place.longitude) <= 180)) throw new FortuneInputError(`出生地 ${place.id} の緯度経度が範囲外です。`);
     timezoneFormatter(place.timezone);
@@ -224,11 +231,15 @@ export function searchBestBirths(engine: SwissEph, request: BestBirthsRequest): 
       if (trines.length === 0) continue;
       const other = found.length - trines.length;
       const gapMinutes = Math.min(...trines.map(p => Math.abs(p.ms - day.noonMs))) / MINUTE;
+      // Places on the same coordinates (towns a few kilometres apart, given to a tenth of a degree) share their angles.
+      const housesAt = new Map<string, ReturnType<SwissEph['houses']>>();
       places.forEach((place, index) => {
         // The offset at the day's middle gives the local date; a DST change that day is settled when choosing.
         const localDay = Math.floor((ms + offsets[index]) / DAY);
         if (nearEdge && !inAgeRange(new Date(localDay * DAY).toISOString().slice(0, 10))) return;
-        const houses = engine.houses(jd, { latitude: place.latitude, longitude: place.longitude }, 'W');
+        const where = `${place.latitude},${place.longitude}`;
+        let houses = housesAt.get(where);
+        if (!houses) housesAt.set(where, houses = engine.houses(jd, { latitude: place.latitude, longitude: place.longitude }, 'W'));
         const angles = [houses.ascendant, houses.mc].flatMap(l => perfectionsTo(l, ANGLE_ASPECTS, day));
         if (angles.some(p => p.kind === 'hard')) return;
         const house = Math.min(...trines.map(p => houseRank[wholeSignHouse(p.at, houses.ascendant) - 1]));
@@ -260,7 +271,10 @@ export function searchBestBirths(engine: SwissEph, request: BestBirthsRequest): 
   // Spread the births, best first: one per place, birth dates apart, perRegion per region.
   const regionNames = [...new Set(places.map(p => p.region))];
   const choose = () => {
-    const sorted = [...pool.values()].sort(compare);
+    // Equal scores are common among places a few kilometres apart; they are ordered by a hash of the day and the
+    // place, not by their order in the list, which would favour the places listed first every day.
+    const tie = (c: Candidate) => hash(`${date}|${c.place.id}|${c.ms}`);
+    const sorted = [...pool.values()].sort((a, b) => compare(a, b) || tie(a) - tie(b));
     const regions = new Map<string, number>(), dates: number[] = [], usedPlaces = new Set<string>();
     const chosen: Final[] = [];
     for (const candidate of sorted) {
